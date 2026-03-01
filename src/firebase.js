@@ -1,5 +1,5 @@
-import { initializeApp } from "firebase/app";
-import { getAuth, signInAnonymously } from "firebase/auth";
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -11,8 +11,7 @@ const firebaseConfig = {
   appId: "1:271595348463:web:33f1f6e5b8bb1df2f5d61a"
 };
 
-const app = initializeApp(firebaseConfig);
+// Gunakan getApp jika sudah diinisialisasi untuk mencegah error saat HMR / Build
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-
-signInAnonymously(auth).catch(console.error);

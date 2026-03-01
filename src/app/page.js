@@ -1,6 +1,7 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { doc, setDoc } from "firebase/firestore";
+import { signInAnonymously } from "firebase/auth";
 import { auth, db } from "../firebase";
 import { Copy, Link as LinkIcon, Image as ImageIcon, CheckCircle2, Loader2 } from "lucide-react";
 
@@ -12,6 +13,11 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef(null);
+
+  // Mencegah error build: Hanya jalankan otentikasi saat di browser
+  useEffect(() => {
+    signInAnonymously(auth).catch(console.error);
+  }, []);
 
   const handleImage = (e) => {
     const file = e.target.files[0];

@@ -1,6 +1,9 @@
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../../firebase";
 
+// INI ADALAH KUNCI AGAR VERCEL BUILD TIDAK ERROR (Force SSR)
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata({ params }) {
   const docRef = doc(db, "artifacts", "link-shopee-ku", "public", "data", "links", params.id);
   const docSnap = await getDoc(docRef);
