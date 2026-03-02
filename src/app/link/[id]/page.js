@@ -1,49 +1,67 @@
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../../../firebase";
+import { notFound } from 'next/navigation';
 
-// INI ADALAH KUNCI AGAR VERCEL BUILD TIDAK ERROR (Force SSR)
-export const dynamic = "force-dynamic";
+// Menggunakan REST API Google agar Server Vercel tidak bentrok dengan Firebase Client
+async function getProductData(id) {
+    try {
+        const res = await fetch(`https://firestore.googleapis.com/v1/projects/shopeeaff-e1257/databases/(default)/documents/links/${id}`, { 
+            cache: 'no-store' 
+        });
+        
+        if (!res.ok) return null;
+        const json = await res.json();
+        if (!json.fields) return null;
 
-export async function generateMetadata({ params }) {
-  const docRef = doc(db, "artifacts", "link-shopee-ku", "public", "data", "links", params.id);
-  const docSnap = await getDoc(docRef);
-  if (docSnap.exists()) {
-    const data = docSnap.data();
-    return {
-      title: data.title,
-      description: "Klik untuk melihat produk di Shopee!",
-      openGraph: {
-        title: data.title,
-        description: "Promo Spesial Shopee!",
-        images: [data.imageUrl],
-        url: data.targetUrl,
-        type: "website",
-      },
-      twitter: {
-        card: "summary_large_image",
-        images: [data.imageUrl],
-      }
-    };
-  }
-  return { title: "Link Tidak Ditemukan" };
+        return {
+            title: json.fields.title?.stringValue || 'Tanpa Judul',
+            image: json.fields.image?.stringValue || '',
+            link: json.fields.link?.stringValue || '#'
+        };
+    } catch (error) {
+        return null;
+    }
 }
 
-export default async function RedirectPage({ params }) {
-  const docRef = doc(db, "artifacts", "link-shopee-ku", "public", "data", "links", params.id);
-  const docSnap = await getDoc(docRef);
-  if (!docSnap.exists()) {
-    return <div className="p-10 text-center font-bold">Link tidak valid atau sudah dihapus.</div>;
-  }
-  const targetUrl = docSnap.data().targetUrl;
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
-      <div className="bg-white p-8 rounded-xl shadow-md text-center max-w-sm w-full animate-pulse">
-        <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <h2 className="text-xl font-bold text-gray-800 mb-2">Mengarahkan ke Shopee...</h2>
-        <p className="text-gray-500 text-sm mb-6">Tunggu sebentar...</p>
-        <script dangerouslySetInnerHTML={{ __html: "window.location.replace('" + targetUrl + "');" }}></script>
-        <a href={targetUrl} className="text-[#ee4d2d] text-sm font-medium underline">Klik di sini jika tidak otomatis pindah</a>
-      </div>
-    </div>
-  );
+export async function generateMetadata({ params }) {
+    const data = await getProductData(params.id);
+
+    if (!data) return { title: 'Produk Tidak Ditemukan' };
+
+    return {
+        title: data.title,
+        description: 'Beli sekarang di Shopee',
+        openGraph: {
+            title: data.title,
+            description: 'Klik gambar untuk melihat detail produk di Shopee.',
+            images: [data.image],
+            type: 'website',
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title: data.title,
+            images: [data.image]
+        }
+    };
+}
+
+export default async function ProductPage({ params }) {
+    const data = await getProductData(params.id);
+
+    if (!data) return notFound();
+
+    return (
+        <div className="min-h-screen bg-[#121212] flex items-center justify-center p-4 font-sans">
+            <div className="w-full max-w-sm bg-[#1e1e1e] rounded-2xl overflow-hidden shadow-2xl border border-gray-800">
+                <div className="w-full aspect-square bg-gray-800">
+                    <img className="w-full h-full object-cover" src={data.image} alt={data.title} />
+                </div>
+                <div className="p-6 flex flex-col items-center text-center">
+                    <h1 className="text-xl font-bold mb-6 text-white leading-snug">{data.title}</h1>
+                    <a href={data.link} className="w-full bg-[#ee4d2d] hover:bg-[#d73f22] text-white font-bold rounded-xl px-6 py-4 transition-colors flex items-center justify-center gap-2 text-lg shadow-lg shadow-orange-900/50">
+                        Beli Sekarang di Shopee
+                    </a>
+                    <p className="text-xs text-gray-500 mt-4">Anda akan diarahkan ke halaman resmi Shopee.</p>
+                </div>
+            </div>
+        </div>
+    );
 }
